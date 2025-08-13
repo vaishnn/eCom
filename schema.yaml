@@ -1,0 +1,29 @@
+table:
+  create: |
+    CREATE TABLE IF NOT EXISTS PRODUCT_PRICES (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      date DATE NOT NULL,
+      product VARCHAR(255) NOT NULL,
+      price DECIMAL(10,2) NOT NULL,
+      pincode INT NOT NULL,
+      platform VARCHAR(255) NOT NULL,
+    );
+  insert: |
+    INSERT INTO PRODUCT_PRICES (
+      date, product, price, pincode, platform)
+    VALUES (%s, %s, %s, %s, %s);
+pincodes:
+  Lucknow: "226030"
+  Hyderabad: "500029"
+  Gurgaon: "122001"
+  Bangalore: "560001"
+  Mumbai: "400099"
+  Delhi: "110004"
+products:
+  - "iphone 16 128 gb"
+  - "iphone 15 128 gb"
+  - "macbook air m1 256 gb"
+  - "macbook pro m1 256 gb"
+  - "airpods pro 2nd gen"
+  - "airpods max"
+  - "apple watch series 9"
