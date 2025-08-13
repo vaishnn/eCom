@@ -1,4 +1,3 @@
-from numpy import nan
 from time import sleep
 from random import uniform
 from selenium import webdriver
@@ -6,7 +5,6 @@ from selenium.webdriver.firefox.service import Service
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
-from webdriver_manager.firefox import GeckoDriverManager
 from bs4 import BeautifulSoup
 from selenium.webdriver.support import expected_conditions as EC
 
@@ -15,8 +13,7 @@ def get_driver() -> webdriver.Firefox:
     options.add_argument("--incognito")
     # options.add_argument("--headless")
     options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
-    service = Service(GeckoDriverManager().install())
-    driver = webdriver.Firefox(service=service, options=options)
+    driver = webdriver.Firefox(options=options)
     return driver
 
 def search_product(driver: webdriver.Firefox, prduct_name: str) -> bool:
@@ -66,4 +63,5 @@ def scrape_product_details(driver: webdriver.Firefox, product: str) -> list:
 driver = get_driver()
 search_product(driver, "Iphone 16")
 products = scrape_product_details(driver, "Iphone 16")
+driver.quit()
 print(products)
