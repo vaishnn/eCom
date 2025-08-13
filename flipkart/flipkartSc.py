@@ -99,5 +99,6 @@ if __name__ == "__main__":
         flipSc = FlipkartServerScraper()
     flipSc.get_driver()
     flipSc.search_product("Iphone 16 128gb")
-    flipSc.scrape_product_details()
+    products = flipSc.scrape_product_details()
+    print(products)
     flipSc.quit()
