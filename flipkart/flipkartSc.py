@@ -9,6 +9,7 @@ from bs4 import BeautifulSoup
 from selenium.webdriver.support import expected_conditions as EC
 from selenium import webdriver
 load_dotenv()
+Service = None
 
 if getenv('TARGET_MACHINE') == 'local':
     pass
@@ -83,7 +84,7 @@ class FlipkartServerScraper(FlipkartScraper):
     def get_driver(self):
         options = webdriver.ChromeOptions()
         options.add_argument("--incognito")
-        service = Service('/usr/bin/chromedriver')
+        service = Service('/usr/bin/chromedriver') # type: ignore
         options.add_argument("--user-data-dir=/tmp/chrome-user-data")
         options.add_argument("--headless") # Runs Chrome in headless mode.
         options.add_argument("--no-sandbox")
