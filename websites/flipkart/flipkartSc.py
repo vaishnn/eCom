@@ -2,6 +2,8 @@ from dotenv import load_dotenv
 from os import getenv
 from time import sleep
 from random import uniform
+import logging
+from typing import Optional
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
@@ -17,12 +19,14 @@ if getenv('TARGET_MACHINE') == 'server':
     from selenium.webdriver.chrome.service import Service
 
 class FlipkartScraper:
-    def __init__(self):
+    def __init__(self, website: str, logger: Optional[logging.Logger] = None):
+        self.website = website
         self.driver: webdriver.Chrome | webdriver.Firefox
-        pass
+        self.logger = logger
+
     def search_product(self, product_name: str) -> bool:
         try:
-            self.driver.get("https://www.flipkart.com/")
+            self.driver.get(self.website)
             sleep(uniform(2, 4))
             search_bar = WebDriverWait(self.driver, 10).until(
                 EC.element_to_be_clickable((By.XPATH, '//*[@id="container"]/div/div[1]/div/div/div/div/div/div/div/div/div/div[1]/div/div/header/div[1]/div[2]/form/div/div/input'))
@@ -67,8 +71,8 @@ class FlipkartScraper:
         self.driver.quit()
 
 class FlipkartLocalScraper(FlipkartScraper):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, website = "https://www.flipkart.com"):
+        super().__init__(website=website)
 
     def get_driver(self):
         options = webdriver.ChromeOptions()
@@ -78,8 +82,8 @@ class FlipkartLocalScraper(FlipkartScraper):
         self.driver = webdriver.Chrome(options=options)
 
 class FlipkartServerScraper(FlipkartScraper):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, website = "https://www.flipkart.com"):
+        super().__init__(website=website)
 
     def get_driver(self):
         options = webdriver.ChromeOptions()

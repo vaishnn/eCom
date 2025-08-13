@@ -1,116 +1,118 @@
-import time
-import random
+from dotenv import load_dotenv
+from os import getenv
+from time import sleep
+from random import uniform
 import logging
-import os
-from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
+from typing import Optional
 from selenium.webdriver.common.by import By
-import json
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
-from webdriver_manager.chrome import ChromeDriverManager
 from bs4 import BeautifulSoup
 from selenium.webdriver.support import expected_conditions as EC
+from selenium import webdriver
+load_dotenv()
+Service = None
 
-log_dir = ".log"
-log_file = os.path.join(log_dir, "amazon_sc.log")
+if getenv('TARGET_MACHINE') == 'local':
+    pass
+if getenv('TARGET_MACHINE') == 'server':
+    from selenium.webdriver.chrome.service import Service
 
-os.makedirs(log_dir, exist_ok=True)
+class AmazonScraper:
+    def __init__(self, website: str = "https://www.amazon.in", logger: Optional[logging.Logger] = None):
+        self.website = website
+        self.driver: webdriver.Chrome | webdriver.Firefox
+        self.logger = logger
 
-logger = logging.getLogger("amazon_sc")
-logger.setLevel(logging.INFO)
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    def change_location(self, zip_code: str) -> bool:
+        try:
+            self.driver.get("https://www.amazon.in")
+            sleep(uniform(2, 4))
 
-handler = logging.FileHandler(log_file)
-handler.setFormatter(formatter)
-logger.addHandler(handler)
+            location_button = WebDriverWait(self.driver, 10).until(
+                EC.element_to_be_clickable((By.ID, "glow-ingress-block"))
+            )
+            location_button.click()
+            sleep(uniform(2, 4))
+
+            zip_input = WebDriverWait(self.driver, 10).until(
+                EC.presence_of_element_located((By.ID, "GLUXZipUpdateInput"))
+            )
+            zip_input.send_keys(str(zip_code))
+            sleep(uniform(2, 4))
+
+            apply_button = self.driver.find_element(By.ID, "GLUXZipUpdate")
+            apply_button.click()
+            sleep(uniform(2, 4))
+            # self.logger.info("Location changed to {}".format(zip_code))
+            return True
+        except Exception as e:
+            # self.logger.error(f"Could not change location to {zip_code}. Error: {e}")
+            self.driver.quit()
+            return False
+
+    def search_product(self, product_name: str) -> bool:
+        try:
+            search_bar = WebDriverWait(self.driver, 10).until(
+                EC.presence_of_element_located((By.ID, "twotabsearchtextbox"))
+            )
+            search_bar.clear()
+            search_bar.send_keys(product_name)
+            search_bar.send_keys(Keys.RETURN)
+            sleep(uniform(2, 4))
+            # logger.info("Product search initiated for {}".format(product_name))
+            return True
+        except Exception as e:
+            # logger.error(f"Could not search for {product_name}. Error: {e}")
+            self.driver.quit()
+            return False
+    def scrape_product_details(self) -> list:
+        soup = BeautifulSoup(self.driver.page_source, 'html.parser')
+        products = []
+
+        results = soup.find_all("div", {"data-component-type": "s-search-result"})
+        for item in results:
+            if item.find("span", string=lambda text: text and "Sponsored" in text): #type: ignore
+                print("Skipping This")
+                continue
+            title_element = item.find("h2", class_ = "a-size-medium a-spacing-none a-color-base a-text-normal") #type: ignore
+            price_amount = item.find("span", class_ = "a-price-whole") #type: ignore
+            rating_element = item.find("span", class_="a-icon-alt") #type: ignore
+
+            title_element = title_element.text.strip()if title_element else "N/A"
+            price_amount = price_amount.text.strip().replace(",", "") if price_amount else "N/A"
+            rating_element = rating_element.text.strip() if rating_element else "N/A"
+
+            if title_element != "N/A":
+                products.append({
+                    "title": title_element,
+                    "price": price_amount,
+                    "rating": rating_element
+                })
+        return products
 
 
-def get_driver() -> webdriver.Chrome:
-    options = webdriver.ChromeOptions()
-    options.add_argument("--incognito")
-    # options.add_argument("--headless")
-    options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
-    service = Service(ChromeDriverManager().install())
-    driver = webdriver.Chrome(service=service, options=options)
-    logger.info("Driver initialized")
-    return driver
+class AmazonLocalScraper(AmazonScraper):
+    def __init__(self):
+        super().__init__()
 
-def change_location(driver: webdriver.Chrome, zip_code: str) -> bool:
-    try:
-        driver.get("https://www.amazon.in")
-        time.sleep(random.uniform(2, 4))
+    def get_driver(self):
+        options = webdriver.ChromeOptions()
+        options.add_argument("--incognito")
+        # options.add_argument("--headless")?
+        options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
+        self.driver = webdriver.Chrome(options=options)
 
-        location_button = WebDriverWait(driver, 10).until(
-            EC.element_to_be_clickable((By.ID, "glow-ingress-block"))
-        )
-        location_button.click()
-        time.sleep(random.uniform(2, 4))
+class AmazonServerScraper(AmazonScraper):
+    def __init__(self):
+        super().__init__()
 
-        zip_input = WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.ID, "GLUXZipUpdateInput"))
-        )
-        zip_input.send_keys(str(zip_code))
-        time.sleep(random.uniform(2, 4))
-
-        # apply_button = driver.find_elements(By.ID, "GLUXZipUpdate")
-        # apply_button.click()
-        apply_button = driver.find_element(By.ID, "GLUXZipUpdate")
-        apply_button.click()
-        time.sleep(random.uniform(2, 4))
-        logger.info("Location changed to {}".format(zip_code))
-        return True
-    except Exception as e:
-        logger.error(f"Could not change location to {zip_code}. Error: {e}")
-        driver.quit()
-        return False
-
-def search_product(driver: webdriver.Chrome, product_name: str) -> bool:
-    try:
-        search_bar = WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.ID, "twotabsearchtextbox"))
-        )
-        search_bar.clear()
-        search_bar.send_keys(product_name)
-        search_bar.send_keys(Keys.RETURN)
-        time.sleep(random.uniform(2, 4))
-        logger.info("Product search initiated for {}".format(product_name))
-        return True
-    except Exception as e:
-        logger.error(f"Could not search for {product_name}. Error: {e}")
-        driver.quit()
-        return False
-
-def scrape_product_details(driver: webdriver.Chrome) -> list:
-    soup = BeautifulSoup(driver.page_source, 'html.parser')
-    products = []
-
-    results = soup.find_all("div", {"data-component-type": "s-search-result"})
-    for item in results:
-        if item.find("span", string=lambda text: text and "Sponsored" in text): #type: ignore
-            print("Skipping This")
-            continue
-        title_element = item.find("h2", class_ = "a-size-medium a-spacing-none a-color-base a-text-normal") #type: ignore
-        price_amount = item.find("span", class_ = "a-price-whole") #type: ignore
-        rating_element = item.find("span", class_="a-icon-alt") #type: ignore
-
-        title_element = title_element.text.strip()if title_element else "N/A"
-        price_amount = price_amount.text.strip().replace(",", "") if price_amount else "N/A"
-        rating_element = rating_element.text.strip() if rating_element else "N/A"
-
-        if title_element != "N/A":
-            products.append({
-                "title": title_element,
-                "price": price_amount,
-                "rating": rating_element
-            })
-    return products
-
-if __name__ == "__main__":
-    driver = get_driver()
-    if change_location(driver, "226030"):
-         if search_product(driver, "Iphone 16 "):
-            products = scrape_product_details(driver)
-            with open("test_am.json", "w") as f:
-                json.dump(products, f)
-    driver.quit()
+    def get_driver(self):
+        options = webdriver.ChromeOptions()
+        options.add_argument("--incognito")
+        service = Service('/usr/bin/chromedriver') # type: ignore
+        options.add_argument("--user-data-dir=/tmp/chrome-user-data")
+        options.add_argument("--headless") # Runs Chrome in headless mode.
+        options.add_argument("--no-sandbox")
+        options.add_argument("--disable-dev-shm-usage")
+        self.driver = webdriver.Chrome(options=options, service = service)
