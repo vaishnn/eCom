@@ -46,7 +46,7 @@ class AmazonScraper:
             sleep(uniform(2, 4))
             # self.logger.info("Location changed to {}".format(zip_code))
             return True
-        except Exception as e:
+        except Exception:
             # self.logger.error(f"Could not change location to {zip_code}. Error: {e}")
             self.driver.quit()
             return False
@@ -62,7 +62,7 @@ class AmazonScraper:
             sleep(uniform(2, 4))
             # logger.info("Product search initiated for {}".format(product_name))
             return True
-        except Exception as e:
+        except Exception:
             # logger.error(f"Could not search for {product_name}. Error: {e}")
             self.driver.quit()
             return False

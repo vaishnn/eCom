@@ -2,8 +2,6 @@ from dotenv import load_dotenv
 from os import getenv
 from time import sleep
 from random import uniform
-import logging
-from typing import Optional
 from numpy import nan
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
