@@ -4,3 +4,4 @@ index.html
 test*
 !.gitignore
 sample*
+*.csv
