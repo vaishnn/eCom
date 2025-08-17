@@ -1,22 +1,17 @@
-from dotenv import load_dotenv
-from os import getenv
 from time import sleep
 from random import uniform
 import logging
 from typing import Optional
+from collections import defaultdict
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
 from bs4 import BeautifulSoup
+import re
 from selenium.webdriver.support import expected_conditions as EC
 from selenium import webdriver
-load_dotenv()
-Service = None
 
-if getenv('TARGET_MACHINE') == 'local':
-    pass
-if getenv('TARGET_MACHINE') == 'server':
-    from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.chrome.service import Service
 
 class FlipkartScraper:
     def __init__(self, website: str, logger: Optional[logging.Logger] = None):
@@ -37,9 +32,12 @@ class FlipkartScraper:
             sleep(0.5)
             search_bar.send_keys(Keys.RETURN)
             sleep(uniform(2, 4))
+            if self.logger:
+                self.logger.info(f"Successfully searched for {product_name}")
             return True
         except Exception as e:
-            print(f"Error searching product: {e}")
+            if self.logger:
+                self.logger.error(f"Error searching product: {e}")
             return False
     def scrape_product_details(self) -> list:
         try:
@@ -62,19 +60,66 @@ class FlipkartScraper:
                     'price': price
                 })
 
+            if self.logger:
+                self.logger.info(f"Scraped {len(products)} product details.")
             return products
         except Exception as e:
-            print(f"Error scraping product details: {e}")
+            if self.logger:
+                self.logger.error(f"Error scraping product details: {e}")
             return []
 
+    @staticmethod
+    def clean_product_data(products: list, logger=None):
+        if logger:
+            logger.info(f"Cleaning {len(products)} products.")
+        processed_products = defaultdict(lambda: {'price': float('inf')})
+
+        for product in products:
+            title = product['title']
+            price_str = product['price']
+            match = re.match(r'(.*?)\s\(([^,]+),\s([^)]+)\)', title)
+            if not match:
+                if logger:
+                    logger.debug(f"Skipping product due to no regex match: {title}")
+                continue
+
+            model, _, storage = match.groups()
+            model = model.strip()
+            storage = storage.strip()
+
+            try:
+                price = int(re.sub(r'[₹,]', '', price_str))
+            except (ValueError, TypeError):
+                if logger:
+                    logger.debug(f"Skipping product due to price conversion error: {price_str}")
+                continue
+            product_key = (model, storage)
+            # print(product_key)?
+            if product_key in processed_products:
+                if price < processed_products[product_key]['price']:
+                    processed_products[product_key]['price'] = price
+            else:
+                processed_products[product_key] = {}
+                processed_products[product_key]['price'] = price
+        # print(processed_products)
+        processed_products = [{'title': element[0] + " " + element[1], 'price': processed_products[element]['price']} for element in processed_products]
+
+        if logger:
+            logger.info(f"Returned {len(processed_products)} products after cleaning.")
+        return processed_products
+
     def quit(self):
+        if self.logger:
+            self.logger.info("Quitting driver.")
         self.driver.quit()
 
 class FlipkartLocalScraper(FlipkartScraper):
-    def __init__(self, website = "https://www.flipkart.com"):
-        super().__init__(website=website)
+    def __init__(self, website: str, logger: Optional[logging.Logger] = None):
+        super().__init__(website, logger)
 
     def get_driver(self):
+        if self.logger:
+            self.logger.info("Initializing local Chrome driver.")
         options = webdriver.ChromeOptions()
         options.add_argument("--incognito")
         # options.add_argument("--headless")?
@@ -82,10 +127,12 @@ class FlipkartLocalScraper(FlipkartScraper):
         self.driver = webdriver.Chrome(options=options)
 
 class FlipkartServerScraper(FlipkartScraper):
-    def __init__(self, website = "https://www.flipkart.com"):
-        super().__init__(website=website)
+    def __init__(self, website: str, logger: Optional[logging.Logger] = None):
+        super().__init__(website, logger)
 
     def get_driver(self):
+        if self.logger:
+            self.logger.info("Initializing server Chrome driver.")
         options = webdriver.ChromeOptions()
         options.add_argument("--incognito")
         service = Service('/usr/bin/chromedriver') # type: ignore
@@ -95,14 +142,25 @@ class FlipkartServerScraper(FlipkartScraper):
         options.add_argument("--disable-dev-shm-usage")
         self.driver = webdriver.Chrome(options=options, service = service)
 
-if __name__ == "__main__":
-    flipSc: FlipkartServerScraper | FlipkartLocalScraper
-    if getenv('TARGET_MACHINE') == 'local':
-        flipSc = FlipkartLocalScraper()
+def run(target_machine, product_name, logger, website: str = "https://www.flipkart.com/"):
+    if target_machine == 'local':
+        flipkartSc = FlipkartLocalScraper(website, logger)
     else:
-        flipSc = FlipkartServerScraper()
-    flipSc.get_driver()
-    flipSc.search_product("Iphone 16 128gb")
-    products = flipSc.scrape_product_details()
-    print(products)
-    flipSc.quit()
+        flipkartSc = FlipkartServerScraper(website, logger)
+    flipkartSc.get_driver()
+
+    search_success = flipkartSc.search_product(product_name)
+    if search_success:
+        products = flipkartSc.scrape_product_details()
+    else:
+        products = []
+    flipkartSc.quit()
+    if products:
+        cleaned_products = flipkartSc.clean_product_data(products, logger)
+        return cleaned_products
+    if logger:
+        logger.warning("No products found, returning empty list.")
+    return []
+
+if __name__ == "__main__":
+    run('local', '123456', 'Iphone 16 128gb', None) #type: ignore

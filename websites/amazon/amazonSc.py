@@ -1,25 +1,19 @@
-from dotenv import load_dotenv
-from os import getenv
 from time import sleep
 from random import uniform
 import logging
 from typing import Optional
+import re
+from collections import defaultdict
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
 from bs4 import BeautifulSoup
 from selenium.webdriver.support import expected_conditions as EC
 from selenium import webdriver
-load_dotenv()
-Service = None
-
-if getenv('TARGET_MACHINE') == 'local':
-    pass
-if getenv('TARGET_MACHINE') == 'server':
-    from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.chrome.service import Service
 
 class AmazonScraper:
-    def __init__(self, website: str = "https://www.amazon.in", logger: Optional[logging.Logger] = None):
+    def __init__(self, website: str , logger: Optional[logging.Logger] = None):
         self.website = website
         self.driver: webdriver.Chrome | webdriver.Firefox
         self.logger = logger
@@ -44,10 +38,12 @@ class AmazonScraper:
             apply_button = self.driver.find_element(By.ID, "GLUXZipUpdate")
             apply_button.click()
             sleep(uniform(2, 4))
-            # self.logger.info("Location changed to {}".format(zip_code))
+            if self.logger:
+                self.logger.info(f"Location changed to {zip_code}")
             return True
-        except Exception:
-            # self.logger.error(f"Could not change location to {zip_code}. Error: {e}")
+        except Exception as e:
+            if self.logger:
+                self.logger.error(f"Could not change location to {zip_code}. Error: {e}")
             self.driver.quit()
             return False
 
@@ -60,10 +56,12 @@ class AmazonScraper:
             search_bar.send_keys(product_name)
             search_bar.send_keys(Keys.RETURN)
             sleep(uniform(2, 4))
-            # logger.info("Product search initiated for {}".format(product_name))
+            if self.logger:
+                self.logger.info(f"Product search initiated for {product_name}")
             return True
-        except Exception:
-            # logger.error(f"Could not search for {product_name}. Error: {e}")
+        except Exception as e:
+            if self.logger:
+                self.logger.error(f"Could not search for {product_name}. Error: {e}")
             self.driver.quit()
             return False
     def scrape_product_details(self) -> list:
@@ -73,7 +71,8 @@ class AmazonScraper:
         results = soup.find_all("div", {"data-component-type": "s-search-result"})
         for item in results:
             if item.find("span", string=lambda text: text and "Sponsored" in text): #type: ignore
-                print("Skipping This")
+                if self.logger:
+                    self.logger.debug("Skipping sponsored product.")
                 continue
             title_element = item.find("h2", class_ = "a-size-medium a-spacing-none a-color-base a-text-normal") #type: ignore
             price_amount = item.find("span", class_ = "a-price-whole") #type: ignore
@@ -89,14 +88,60 @@ class AmazonScraper:
                     "price": price_amount,
                     "rating": rating_element
                 })
+        if self.logger:
+            self.logger.info(f"Scraped {len(products)} product details.")
         return products
+
+    @staticmethod
+    def clean_product_data(products, logger=None):
+        if logger:
+            logger.info(f"Cleaning {len(products)} products.")
+        processed_products = defaultdict(lambda: {'price': float('inf')})
+        for item in products:
+            title = item.get('title', '')
+            price_str = item.get('price', '0')
+            match = re.match(r'^(.*?)\s(?:(\d+\sGB)|(?:\((\d+\sGB)\)))', title)
+
+            if not match:
+                continue
+            model = match.group(1).strip()
+            storage = next((s for s in match.groups()[1:] if s is not None), None)
+
+            if not storage:
+                continue
+
+            product_key = (model, storage)
+            try:
+                price = int(price_str)
+            except (ValueError, TypeError):
+                continue
+
+            if price == 0:
+                continue
+
+            if price < processed_products[product_key]['price']:
+                processed_products[product_key]['price'] = price
+                processed_products[product_key]['title'] = f"{model}, {storage}" # type: ignore
+
+        cleaned_products = [data for data in processed_products.values() if 'title' in data]
+        if logger:
+            logger.info(f"Returned {len(cleaned_products)} products after cleaning.")
+        return cleaned_products
+
+
+    def quit(self):
+        if self.logger:
+            self.logger.info("Quitting driver.")
+        self.driver.quit()
 
 
 class AmazonLocalScraper(AmazonScraper):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, website: str, logger: Optional[logging.Logger] = None):
+        super().__init__(website=website, logger=logger)
 
     def get_driver(self):
+        if self.logger:
+            self.logger.info("Initializing local Chrome driver.")
         options = webdriver.ChromeOptions()
         options.add_argument("--incognito")
         # options.add_argument("--headless")?
@@ -104,15 +149,43 @@ class AmazonLocalScraper(AmazonScraper):
         self.driver = webdriver.Chrome(options=options)
 
 class AmazonServerScraper(AmazonScraper):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, website: str, logger: Optional[logging.Logger] = None):
+        super().__init__(website=website, logger=logger)
 
     def get_driver(self):
+        if self.logger:
+            self.logger.info("Initializing server Chrome driver.")
         options = webdriver.ChromeOptions()
         options.add_argument("--incognito")
         service = Service('/usr/bin/chromedriver') # type: ignore
         options.add_argument("--user-data-dir=/tmp/chrome-user-data")
-        options.add_argument("--headless") # Runs Chrome in headless mode.
+        options.add_argument("--headless")
         options.add_argument("--no-sandbox")
         options.add_argument("--disable-dev-shm-usage")
         self.driver = webdriver.Chrome(options=options, service = service)
+
+def run(target_machine, pincode, product_name, logger, website: str = "https://www.amazon.in"):
+    if target_machine == 'local':
+        amazonSc = AmazonLocalScraper(website, logger)
+    else:
+        amazonSc = AmazonServerScraper(website, logger)
+    amazonSc.get_driver()
+    location_success = amazonSc.change_location(pincode)
+    if location_success:
+        search_success = amazonSc.search_product(product_name)
+        if search_success:
+            products = amazonSc.scrape_product_details()
+        else:
+            products = []
+    else:
+        products = []
+    amazonSc.quit()
+    if products:
+        cleaned_products = amazonSc.clean_product_data(products, logger)
+        return cleaned_products
+    if logger:
+        logger.warning("No products found, returning empty list.")
+    return []
+
+if __name__ == "__main__":
+    run('local', '226030', 'Iphone 16 128gb', None)
