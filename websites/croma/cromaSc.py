@@ -141,7 +141,7 @@ class CromaLocalScraper(CromaScraper):
             self.logger.info("Initializing local Chrome driver.")
         options = webdriver.ChromeOptions()
         options.add_argument("--incognito")
-        # options.add_argument("--headless")?
+        # options.add_argument("--headless")
         options.add_experimental_option(
             "prefs", {"profile.default_content_setting_values.geolocation": 2}
         )
