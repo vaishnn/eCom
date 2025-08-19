@@ -2,6 +2,7 @@ from time import sleep
 from random import uniform
 import logging
 from typing import Optional
+import sys
 import re
 from collections import defaultdict
 from selenium.webdriver.common.by import By
@@ -20,7 +21,7 @@ class AmazonScraper:
 
     def change_location(self, zip_code: str) -> bool:
         try:
-            self.driver.get("https://www.amazon.in")
+            self.driver.get(self.website)
             sleep(uniform(2, 4))
 
             location_button = WebDriverWait(self.driver, 10).until(
@@ -188,4 +189,7 @@ def run(target_machine, pincode, product_name, logger, website: str = "https://w
     return []
 
 if __name__ == "__main__":
-    run('local', '226030', 'Iphone 16 128gb', None)
+    run_mode = "local"
+    if len(sys.argv) > 1 and "--local" == sys.argv[1] or "--server" == sys.argv[1]:
+        run_mode = sys.argv[1].replace("--", "")
+    run(run_mode, '226030', 'Iphone 16 128gb', None)

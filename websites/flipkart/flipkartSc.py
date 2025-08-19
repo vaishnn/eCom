@@ -4,6 +4,7 @@ import logging
 from typing import Optional
 from collections import defaultdict
 from selenium.webdriver.common.by import By
+import sys
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
 from bs4 import BeautifulSoup
@@ -142,7 +143,7 @@ class FlipkartServerScraper(FlipkartScraper):
         options.add_argument("--disable-dev-shm-usage")
         self.driver = webdriver.Chrome(options=options, service = service)
 
-def run(target_machine, product_name, logger, website: str = "https://www.flipkart.com/"):
+def run(target_machine, _, product_name, logger, website: str = "https://www.flipkart.com/"):
     if target_machine == 'local':
         flipkartSc = FlipkartLocalScraper(website, logger)
     else:
@@ -163,4 +164,7 @@ def run(target_machine, product_name, logger, website: str = "https://www.flipka
     return []
 
 if __name__ == "__main__":
-    run('local', '123456', 'Iphone 16 128gb', None) #type: ignore
+    run_mode = "local"
+    if len(sys.argv) > 1 and "--local" == sys.argv[1] or "--server" == sys.argv[1]:
+        run_mode = sys.argv[1].replace("--", "")
+    run(run_mode, '226030', 'Iphone 16 128gb', None)

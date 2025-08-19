@@ -7,6 +7,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.chrome.service import Service
 from bs4 import BeautifulSoup
 from selenium.webdriver.support import expected_conditions as EC
+import sys
 from selenium import webdriver
 import re
 from collections import defaultdict
@@ -191,4 +192,7 @@ def run(target_machine, pincode, product, logger, website = "https://www.relianc
     return []
 
 if __name__ == "__main__":
-    run('local', '226030', 'Iphone 12', None)
+    run_mode = "local"
+    if len(sys.argv) > 1 and "--local" == sys.argv[1] or "--server" == sys.argv[1]:
+        run_mode = sys.argv[1].replace("--", "")
+    run(run_mode, '226030', 'Iphone 16 128gb', None)
