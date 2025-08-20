@@ -85,7 +85,7 @@ class FlipkartScraper:
                 continue
 
             model, _, storage = match.groups()
-            model = model.strip()
+            model = model.replace("Apple", "").strip()
             storage = storage.strip()
 
             try:
@@ -165,6 +165,8 @@ def run(target_machine, _, product_name, logger, website: str = "https://www.fli
 
 if __name__ == "__main__":
     run_mode = "local"
-    if len(sys.argv) > 1 and "--local" == sys.argv[1] or "--server" == sys.argv[1]:
-        run_mode = sys.argv[1].replace("--", "")
-    run(run_mode, '226030', 'Iphone 16 128gb', None)
+    if len(sys.argv) > 1:
+        if "--local" == sys.argv[1] or "--server" == sys.argv[1]:
+            run_mode = sys.argv[1].replace("--", "")
+    products = run(run_mode, '226030', 'Iphone 16 128gb', None)
+    print(products)

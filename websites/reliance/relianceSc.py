@@ -193,6 +193,7 @@ def run(target_machine, pincode, product, logger, website = "https://www.relianc
 
 if __name__ == "__main__":
     run_mode = "local"
-    if len(sys.argv) > 1 and "--local" == sys.argv[1] or "--server" == sys.argv[1]:
-        run_mode = sys.argv[1].replace("--", "")
+    if len(sys.argv) > 1:
+        if "--local" == sys.argv[1] or "--server" == sys.argv[1]:
+            run_mode = sys.argv[1].replace("--", "")
     run(run_mode, '226030', 'Iphone 16 128gb', None)

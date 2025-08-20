@@ -94,7 +94,7 @@ class AmazonScraper:
         return products
 
     @staticmethod
-    def clean_product_data(products, logger=None):
+    def clean_product_data(products, needed_product, logger=None):
         if logger:
             logger.info(f"Cleaning {len(products)} products.")
         processed_products = defaultdict(lambda: {'price': float('inf')})
@@ -119,10 +119,9 @@ class AmazonScraper:
 
             if price == 0:
                 continue
-
             if price < processed_products[product_key]['price']:
                 processed_products[product_key]['price'] = price
-                processed_products[product_key]['title'] = f"{model}, {storage}" # type: ignore
+                processed_products[product_key]['title'] = f"{model} {storage}" # type: ignore
 
         cleaned_products = [data for data in processed_products.values() if 'title' in data]
         if logger:
@@ -182,7 +181,7 @@ def run(target_machine, pincode, product_name, logger, website: str = "https://w
         products = []
     amazonSc.quit()
     if products:
-        cleaned_products = amazonSc.clean_product_data(products, logger)
+        cleaned_products = amazonSc.clean_product_data(products, product_name, logger)
         return cleaned_products
     if logger:
         logger.warning("No products found, returning empty list.")
@@ -192,4 +191,5 @@ if __name__ == "__main__":
     run_mode = "local"
     if len(sys.argv) > 1 and "--local" == sys.argv[1] or "--server" == sys.argv[1]:
         run_mode = sys.argv[1].replace("--", "")
-    run(run_mode, '226030', 'Iphone 16 128gb', None)
+    products = run(run_mode, '226030', 'iPhone 16 128 GB', None)
+    print(products)

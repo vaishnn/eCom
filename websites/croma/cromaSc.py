@@ -110,7 +110,8 @@ class CromaScraper:
                 continue
 
             model, storage, _ = match.groups()
-            model = model.strip()
+            model = model.replace('Apple', '').strip()
+            storage = storage.strip().replace('GB', ' GB')
 
             product_key = (model, storage)
 
@@ -121,7 +122,7 @@ class CromaScraper:
 
             if price < processed_products[product_key]['price']:
                 processed_products[product_key]['price'] = price
-                processed_products[product_key]['title'] = f"{model}, {storage}" # type: ignore
+                processed_products[product_key]['title'] = f"{model} {storage}" # type: ignore
 
         cleaned_products = [data for data in processed_products.values() if 'title' in data]
         if logger:
@@ -197,6 +198,8 @@ def run(target_machine: str, pincode: str | int, product_name: str, logger, webs
 
 if __name__ == "__main__":
     run_mode = "local"
-    if len(sys.argv) > 1 and "--local" == sys.argv[1] or "--server" == sys.argv[1]:
-        run_mode = sys.argv[1].replace("--", "")
-    run(run_mode, '226030', 'Iphone 16 128gb', None)
+    if len(sys.argv) > 1:
+        if "--local" == sys.argv[1] or "--server" == sys.argv[1]:
+            run_mode = sys.argv[1].replace("--", "")
+    products = run(run_mode, '226030', 'iPhone 16 128 GB', None)
+    print(products)

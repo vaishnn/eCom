@@ -20,10 +20,5 @@ pincodes:
   Mumbai: "400099"
   Delhi: "110004"
 products:
-  - "iphone 16 128 gb"
-  - "iphone 15 128 gb"
-  - "macbook air m1 256 gb"
-  - "macbook pro m1 256 gb"
-  - "airpods pro 2nd gen"
-  - "airpods max"
-  - "apple watch series 9"
+  - "iPhone 16 128 GB"
+  - "iPhone 15 128 GB"
