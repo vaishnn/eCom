@@ -164,6 +164,7 @@ class RelianceServerScraper(RelianceScraper):
         options.add_argument("--incognito")
         service = Service('/usr/bin/chromedriver') # type: ignore
         options.add_argument("--user-data-dir=/tmp/chrome-user-data")
+        options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
         options.add_argument("--headless") # Runs Chrome in headless mode.
         options.add_argument("--no-sandbox")
         options.add_argument("--disable-dev-shm-usage")
@@ -196,4 +197,5 @@ if __name__ == "__main__":
     if len(sys.argv) > 1:
         if "--local" == sys.argv[1] or "--server" == sys.argv[1]:
             run_mode = sys.argv[1].replace("--", "")
-    run(run_mode, '226030', 'Iphone 16 128gb', None)
+    products = run(run_mode, '226030', 'Iphone 16 128gb', None)
+    print(products)

@@ -161,6 +161,7 @@ class AmazonServerScraper(AmazonScraper):
         options.add_argument("--incognito")
         service = Service('/usr/bin/chromedriver') # type: ignore
         options.add_argument("--user-data-dir=/tmp/chrome-user-data")
+        options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
         options.add_argument("--headless")
         options.add_argument("--no-sandbox")
         options.add_argument("--disable-dev-shm-usage")
