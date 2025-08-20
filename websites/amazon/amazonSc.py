@@ -53,10 +53,11 @@ class AmazonScraper:
             search_bar = WebDriverWait(self.driver, 10).until(
                 EC.presence_of_element_located((By.ID, "twotabsearchtextbox"))
             )
-            search_bar.clear()
+            # search_bar.clear()
             search_bar.send_keys(product_name)
+            sleep(uniform(1,3))
             search_bar.send_keys(Keys.RETURN)
-            sleep(uniform(2, 4))
+
             if self.logger:
                 self.logger.info(f"Product search initiated for {product_name}")
             return True
@@ -123,7 +124,7 @@ class AmazonScraper:
                 processed_products[product_key]['price'] = price
                 processed_products[product_key]['title'] = f"{model} {storage}" # type: ignore
 
-        cleaned_products = [data for data in processed_products.values() if 'title' in data]
+        cleaned_products = list(processed_products.values())
         if logger:
             logger.info(f"Returned {len(cleaned_products)} products after cleaning.")
         return cleaned_products
@@ -143,6 +144,7 @@ class AmazonLocalScraper(AmazonScraper):
         if self.logger:
             self.logger.info("Initializing local Chrome driver.")
         options = webdriver.ChromeOptions()
+
         options.add_argument("--incognito")
         # options.add_argument("--headless")
         options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
