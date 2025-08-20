@@ -119,7 +119,7 @@ class RelianceScraper:
             if not match:
                 continue
             model, storage, _ = match.groups()
-            model = model.strip()
+            model = model.replace("Apple", "").strip()
             product_key = (model, storage)
             try:
                 price = int(float(re.sub(r'[₹,]', '', price_str)))
@@ -127,7 +127,7 @@ class RelianceScraper:
                 price = 0
             if price < processed_products[product_key]['price']:
                 processed_products[product_key]['price'] = price
-                processed_products[product_key]['title'] = f"{model}, {storage}" # type: ignore
+                processed_products[product_key]['title'] = f"{model} {storage}" # type: ignore
 
         final_products = [data for data in processed_products.values() if 'title' in data]
         if logger:
@@ -148,6 +148,7 @@ class RelianceLocalScraper(RelianceScraper):
         if self.logger:
             self.logger.info("Initializing local Chrome driver.")
         options = webdriver.ChromeOptions()
+        options.add_experimental_option("prefs", {"profile.default_content_setting_values.geolocation": 2})
         options.add_argument("--incognito")
         # options.add_argument("--headless")
         options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
@@ -164,6 +165,7 @@ class RelianceServerScraper(RelianceScraper):
         options.add_argument("--incognito")
         service = Service('/usr/bin/chromedriver') # type: ignore
         options.add_argument("--user-data-dir=/tmp/chrome-user-data")
+        options.add_experimental_option("prefs", {"profile.default_content_setting_values.geolocation": 2})
         options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
         options.add_argument("--headless") # Runs Chrome in headless mode.
         options.add_argument("--no-sandbox")
