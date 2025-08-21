@@ -158,29 +158,30 @@ if __name__ =="__main__":
         for city in pincodes:
             pincode = pincodes[city]
 
-            # Amazon
-            logger.info(f"---Processing product {product} for pincode {pincode} for platform Amazon---")
-            amazonData = amazonSc.run(target_machine, pincode, product, logger)
-            aggregator.process_platform_data("Amazon", amazonData, pincode, city)
-            logger.info("Amazon data processed successfully finished.")
+            if target_machine == "local":
+                # Reliance
+                logger.info(f"---Processing product {product} for pincode {pincode} for platform Reliance---")
+                relianceData = relianceSc.run(target_machine, pincode, product, logger) #type: ignore
+                aggregator.process_platform_data("Reliance", relianceData, pincode, city)
+                logger.info("Reliance data processed successfully finished.")
+            else:
+                # Amazon
+                logger.info(f"---Processing product {product} for pincode {pincode} for platform Amazon---")
+                amazonData = amazonSc.run(target_machine, pincode, product, logger)
+                aggregator.process_platform_data("Amazon", amazonData, pincode, city)
+                logger.info("Amazon data processed successfully finished.")
 
 
-            # Flipkart
-            logger.info(f"---Processing product {product} for pincode {pincode} for platform Flipkart---")
-            flipkartData = flipkartSc.run(target_machine, pincode, product, logger)
-            aggregator.process_platform_data("Flipkart", flipkartData, pincode, city)
-            logger.info("Flipkart data processed successfully finished.")
+                # Flipkart
+                logger.info(f"---Processing product {product} for pincode {pincode} for platform Flipkart---")
+                flipkartData = flipkartSc.run(target_machine, pincode, product, logger)
+                aggregator.process_platform_data("Flipkart", flipkartData, pincode, city)
+                logger.info("Flipkart data processed successfully finished.")
 
-            # Croma
-            logger.info(f"---Processing product {product} for pincode {pincode} for platform Croma---")
-            cromaData = cromaSc.run(target_machine, pincode, product, logger) #type: ignore
-            aggregator.process_platform_data("Croma", cromaData, pincode, city)
-            logger.info("Croma data processed successfully finished.")
-
-            # Reliance
-            logger.info(f"---Processing product {product} for pincode {pincode} for platform Reliance---")
-            relianceData = relianceSc.run(target_machine, pincode, product, logger) #type: ignore
-            aggregator.process_platform_data("Reliance", relianceData, pincode, city)
-            logger.info("Reliance data processed successfully finished.")
+                # Croma
+                logger.info(f"---Processing product {product} for pincode {pincode} for platform Croma---")
+                cromaData = cromaSc.run(target_machine, pincode, product, logger) #type: ignore
+                aggregator.process_platform_data("Croma", cromaData, pincode, city)
+                logger.info("Croma data processed successfully finished.")
 
     logger.info("Finished processing all platforms.")

@@ -149,9 +149,10 @@ class RelianceLocalScraper(RelianceScraper):
             self.logger.info("Initializing local Chrome driver.")
         options = webdriver.ChromeOptions()
         options.add_experimental_option("prefs", {"profile.default_content_setting_values.geolocation": 2})
-        options.add_argument("--incognito")
-        # options.add_argument("--headless")
-        options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
+        # options.add_argument("--incognito")
+        options.add_argument("--headless=new")
+        # options.add_argument("--remote-debugging-port=9222")
+        # options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
         self.driver = webdriver.Chrome(options=options)
 
 class RelianceServerScraper(RelianceScraper):
@@ -167,7 +168,7 @@ class RelianceServerScraper(RelianceScraper):
         options.add_argument("--user-data-dir=/tmp/chrome-user-data")
         options.add_experimental_option("prefs", {"profile.default_content_setting_values.geolocation": 2})
         options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
-        options.add_argument("--headless") # Runs Chrome in headless mode.
+        options.add_argument("--headless=new") # Runs Chrome in headless mode.
         options.add_argument("--no-sandbox")
         options.add_argument("--disable-dev-shm-usage")
         self.driver = webdriver.Chrome(options=options, service = service)

@@ -1,0 +1,5 @@
+scraping:
+  url: https://www.relianceindustries.com/
+
+api:
+  products: https://www.reliancedigital.in/ext/raven-api/catalog/v1.0/products
