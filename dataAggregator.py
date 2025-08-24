@@ -2,6 +2,7 @@ from dotenv import load_dotenv
 import yaml
 from logger import ExtensiveLogger
 import os
+import sys
 import smtplib
 from email.mime.text import MIMEText
 import pymysql
@@ -128,7 +129,23 @@ def read_yaml(logger, yaml_file_path: str) -> dict:
 
 
 if __name__ =="__main__":
-    target_machine = os.getenv('TARGET_MACHINE')
+    to_run = []
+    if len(sys.argv) > 1:
+        _to_run: str = sys.argv[1].strip().lower()
+
+        if _to_run == 'all':
+            to_run = ['amazon', 'flipkart', 'croma']
+        else:
+            if 'amazon' in _to_run:
+                to_run.append('amazon')
+            if 'flipkart' in _to_run:
+                to_run.append('flipkart')
+            if 'croma' in _to_run:
+                to_run.append('croma')
+    else:
+        to_run = ['amazon', 'flipkart', 'croma']
+
+    target_machine = str(os.getenv('TARGET_MACHINE'))
     logger_wrapper = ExtensiveLogger('scraper.log', max_bytes=10000000, backup_count=3)
     logger = logger_wrapper.get_logger()
     logger.info("Logger initialized.")
@@ -155,6 +172,7 @@ if __name__ =="__main__":
     aggregator = DataAggregator(__DB_CONFIG, __EMAIL_SETTINGS, logger)
     aggregator.setup_database()
     for product in products:
+        flipkart_done: bool = False
         for city in pincodes:
             pincode = pincodes[city]
 
@@ -165,23 +183,28 @@ if __name__ =="__main__":
                 aggregator.process_platform_data("Reliance", relianceData, pincode, city)
                 logger.info("Reliance data processed successfully finished.")
             else:
-                # Amazon
-                logger.info(f"---Processing product {product} for pincode {pincode} for platform Amazon---")
-                amazonData = amazonSc.run(target_machine, pincode, product, logger)
-                aggregator.process_platform_data("Amazon", amazonData, pincode, city)
-                logger.info("Amazon data processed successfully finished.")
+                if 'amazon' in to_run:
+                    # Amazon
+                    logger.info(f"---Processing product {product} for pincode {pincode} for platform Amazon---")
+                    amazonData = amazonSc.run(target_machine, pincode, product, logger)
+                    aggregator.process_platform_data("Amazon", amazonData, pincode, city)
+                    logger.info("Amazon data processed successfully finished.")
 
 
                 # Flipkart
-                logger.info(f"---Processing product {product} for pincode {pincode} for platform Flipkart---")
-                flipkartData = flipkartSc.run(target_machine, pincode, product, logger)
-                aggregator.process_platform_data("Flipkart", flipkartData, pincode, city)
-                logger.info("Flipkart data processed successfully finished.")
+                if 'flipkart' in to_run:
+                    if flipkart_done is False:
+                        logger.info(f"---Processing product {product} for pincode {pincode} for platform Flipkart---")
+                        flipkartData = flipkartSc.run(target_machine, pincode, product, logger)
+                        aggregator.process_platform_data("Flipkart", flipkartData, pincode, city)
+                        logger.info("Flipkart data processed successfully finished.")
+                        flipkart_done = True
 
                 # Croma
-                logger.info(f"---Processing product {product} for pincode {pincode} for platform Croma---")
-                cromaData = cromaSc.run(target_machine, pincode, product, logger) #type: ignore
-                aggregator.process_platform_data("Croma", cromaData, pincode, city)
-                logger.info("Croma data processed successfully finished.")
+                if 'croma' in to_run:
+                    logger.info(f"---Processing product {product} for pincode {pincode} for platform Croma---")
+                    cromaData = cromaSc.run(target_machine, pincode, product, logger)
+                    aggregator.process_platform_data("Croma", cromaData, pincode, city)
+                    logger.info("Croma data processed successfully finished.")
 
     logger.info("Finished processing all platforms.")
